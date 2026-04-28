@@ -40,7 +40,9 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
+            cd /home/ec2-user
+            docker-compose down || true
             cd /home/ec2-user/app
             docker build -t howscat-app .
             cd /home/ec2-user
-            docker-compose up -d --force-recreate app
+            docker-compose up -d
