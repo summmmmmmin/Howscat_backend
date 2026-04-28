@@ -1,0 +1,16 @@
+package com.example.howscat.dto;
+
+import lombok.Getter;
+
+@Getter
+public class MedicationCreateRequest {
+    private String name;
+    private String dosage;
+    private String frequency;
+    private String startDate;
+    private String endDate;
+    private Boolean alarmEnabled;
+    private Integer alarmHour;
+    private Integer alarmMinute;
+    private String notes;
+}
