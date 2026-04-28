@@ -42,6 +42,8 @@ jobs:
           script: |
             cd /home/ec2-user
             docker-compose down || true
+            docker ps -q | xargs -r docker stop || true
+            docker ps -aq | xargs -r docker rm || true
             cd /home/ec2-user/app
             docker build -t howscat-app .
             cd /home/ec2-user
