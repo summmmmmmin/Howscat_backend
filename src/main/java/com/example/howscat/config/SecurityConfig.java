@@ -25,7 +25,7 @@ public class SecurityConfig {
     private final JwtProvider jwtProvider;
     private final RedisTemplate<String, String> redisTemplate;
 
-    @Value("${cors.allowed-origins:*}")
+    @Value("${cors.allowed-origins:https://howscat.com}")
     private String allowedOrigins;
 
     @Bean

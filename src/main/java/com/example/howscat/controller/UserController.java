@@ -1,7 +1,6 @@
 package com.example.howscat.controller;
 
 import com.example.howscat.UserService;
-import com.example.howscat.domain.User;
 import com.example.howscat.dto.LoginRequest;
 import com.example.howscat.dto.LoginResponse;
 import com.example.howscat.dto.RefreshRequest;
@@ -13,9 +12,12 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.time.Duration;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -97,23 +99,27 @@ public class UserController {
 
         String token = authHeader.substring(7);
 
-        long remaining = jwtProvider.getRemainingExpiration(token);
+        try {
+            if (jwtProvider.validateToken(token)) {
+                long remaining = jwtProvider.getRemainingExpiration(token);
+                Integer userId = jwtProvider.getUserId(token);
 
-        Integer userId = jwtProvider.getUserId(token);
+                if (remaining > 0) {
+                    redisTemplate.opsForValue()
+                            .set("blacklist:" + token, "logout", Duration.ofMillis(remaining));
+                }
+                redisTemplate.delete("refresh:" + userId);
+            } else {
+                // 만료된 토큰: refresh만 삭제
+                try {
+                    Integer userId = jwtProvider.getUserIdIgnoreExpiration(token);
+                    redisTemplate.delete("refresh:" + userId);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception e) {
+            log.warn("로그아웃 처리 중 오류 (무시): {}", e.getMessage());
+        }
 
-
-        // Access 블랙리스트 등록
-        redisTemplate.opsForValue()
-                .set("blacklist:" + token,
-                        "logout",
-                        Duration.ofMillis(remaining));
-
-        // Refresh 삭제
-        redisTemplate.delete("refresh:" + userId);
-
-        return ResponseEntity.ok(
-                Map.of("message", "로그아웃 완료")
-        );
-
+        return ResponseEntity.ok(Map.of("message", "로그아웃 완료"));
     }
 }

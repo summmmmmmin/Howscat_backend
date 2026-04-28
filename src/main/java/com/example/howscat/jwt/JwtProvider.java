@@ -85,4 +85,20 @@ public class JwtProvider {
         return expiration.getTime() - System.currentTimeMillis();
     }
 
+    /** 만료된 토큰에서도 userId를 추출 (로그아웃용) */
+    public Integer getUserIdIgnoreExpiration(String token) {
+        try {
+            return Integer.parseInt(
+                    Jwts.parserBuilder()
+                            .setSigningKey(getKey())
+                            .build()
+                            .parseClaimsJws(token)
+                            .getBody()
+                            .getSubject()
+            );
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            return Integer.parseInt(e.getClaims().getSubject());
+        }
+    }
+
 }

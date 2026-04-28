@@ -20,10 +20,11 @@ import java.util.Locale;
 public class HealthScheduleService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final CatOwnershipService catOwnershipService;
 
     public List<HealthScheduleItem> listSchedules(Long catId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         // cat / birth date
         CatInfo cat = queryCatInfo(catId);
@@ -84,7 +85,7 @@ public class HealthScheduleService {
             Authentication authentication
     ) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         // schedule belongs to cat
         jdbcTemplate.update(
@@ -136,7 +137,7 @@ public class HealthScheduleService {
             Authentication authentication
     ) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         if (request.getHealthTypeId() == null) {
             throw new IllegalArgumentException("healthTypeId is required");
@@ -232,7 +233,7 @@ public class HealthScheduleService {
      */
     public void deleteSchedule(Long catId, Long scheduleId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         int deleted = jdbcTemplate.update(
                 "DELETE FROM health_schedule WHERE health_schedule_id = ? AND cat_id = ?",
@@ -336,16 +337,6 @@ public class HealthScheduleService {
     private int computeAgeYears(LocalDate birth, LocalDate now) {
         if (birth == null) return 0;
         return Math.max(0, Period.between(birth, now).getYears());
-    }
-
-    private void assertCatBelongsToUser(Long catId, Integer userId) {
-        Integer ownerUserId = jdbcTemplate.query(
-                "SELECT user_id FROM cat WHERE cat_id = ?",
-                new Object[]{catId},
-                rs -> rs.next() ? rs.getInt("user_id") : null
-        );
-        if (ownerUserId == null) throw new IllegalArgumentException("cat not found");
-        if (!ownerUserId.equals(userId)) throw new SecurityException("cat does not belong to user");
     }
 
     private CatInfo queryCatInfo(Long catId) {

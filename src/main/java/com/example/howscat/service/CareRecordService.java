@@ -23,12 +23,13 @@ import java.util.List;
 public class CareRecordService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final CatOwnershipService catOwnershipService;
 
     // ─── Medication ───────────────────────────────────────────────────────────
 
     public List<MedicationItem> listMedications(Long catId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         return jdbcTemplate.query(
                 "SELECT medication_id, name, dosage, frequency, start_date, end_date, " +
@@ -52,7 +53,7 @@ public class CareRecordService {
 
     public void addMedication(Long catId, MedicationCreateRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         LocalDate startDate = req.getStartDate() != null ? LocalDate.parse(req.getStartDate()) : LocalDate.now();
         LocalDate endDate = req.getEndDate() != null && !req.getEndDate().isBlank()
@@ -84,7 +85,7 @@ public class CareRecordService {
 
     public void updateMedication(Long catId, Long medicationId, MedicationCreateRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         LocalDate startDate = req.getStartDate() != null && !req.getStartDate().isBlank()
                 ? LocalDate.parse(req.getStartDate()) : LocalDate.now();
@@ -110,7 +111,7 @@ public class CareRecordService {
 
     public void deleteMedication(Long catId, Long medicationId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         jdbcTemplate.update(
                 "DELETE FROM medication WHERE medication_id = ? AND cat_id = ?",
                 medicationId, catId);
@@ -120,7 +121,7 @@ public class CareRecordService {
 
     public List<LitterBoxItem> listLitterRecords(Long catId, Integer limit, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         int lim = limit != null && limit > 0 ? limit : 30;
 
         return jdbcTemplate.query(
@@ -141,7 +142,7 @@ public class CareRecordService {
 
     public void addLitterRecord(Long catId, LitterBoxCreateRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         LocalDate date = req.getDate() != null && !req.getDate().isBlank()
                 ? LocalDate.parse(req.getDate()) : LocalDate.now();
@@ -164,7 +165,7 @@ public class CareRecordService {
 
     public void updateLitterRecord(Long catId, Long recordId, LitterBoxCreateRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         LocalDate date = req.getDate() != null && !req.getDate().isBlank()
                 ? LocalDate.parse(req.getDate()) : LocalDate.now();
@@ -184,7 +185,7 @@ public class CareRecordService {
 
     public void deleteLitterRecord(Long catId, Long recordId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         jdbcTemplate.update(
                 "DELETE FROM litter_box_record WHERE litter_box_record_id = ? AND cat_id = ?",
                 recordId, catId);
@@ -194,7 +195,7 @@ public class CareRecordService {
 
     public List<VetVisitItem> listVetVisits(Long catId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         return jdbcTemplate.query(
                 "SELECT vet_visit_id, visit_date, hospital_name, diagnosis, prescription, notes " +
@@ -213,7 +214,7 @@ public class CareRecordService {
 
     public void addVetVisit(Long catId, VetVisitCreateRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         LocalDate date = req.getDate() != null && !req.getDate().isBlank()
                 ? LocalDate.parse(req.getDate()) : LocalDate.now();
@@ -234,7 +235,7 @@ public class CareRecordService {
 
     public void updateVetVisit(Long catId, Long visitId, VetVisitCreateRequest req, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         LocalDate date = req.getDate() != null && !req.getDate().isBlank()
                 ? LocalDate.parse(req.getDate()) : LocalDate.now();
@@ -253,23 +254,13 @@ public class CareRecordService {
 
     public void deleteVetVisit(Long catId, Long visitId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
         jdbcTemplate.update(
                 "DELETE FROM vet_visit WHERE vet_visit_id = ? AND cat_id = ?",
                 visitId, catId);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
-
-    private void assertCatBelongsToUser(Long catId, Integer userId) {
-        Long ownerUserId = jdbcTemplate.query(
-                "SELECT user_id FROM cat WHERE cat_id = ?",
-                new Object[]{catId},
-                rs -> rs.next() ? rs.getLong("user_id") : null
-        );
-        if (ownerUserId == null) throw new IllegalArgumentException("cat not found");
-        if (ownerUserId.longValue() != userId.longValue()) throw new SecurityException("cat does not belong to user");
-    }
 
     private String freqLabel(String freq) {
         if ("TWICE_DAILY".equals(freq)) return "하루 2회";

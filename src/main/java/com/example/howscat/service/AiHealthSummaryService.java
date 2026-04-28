@@ -19,13 +19,15 @@ import java.util.Map;
 public class AiHealthSummaryService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final RestTemplate restTemplate;
+    private final CatOwnershipService catOwnershipService;
 
     @Value("${GEMINI_API_KEY:}")
     private String apiKey;
 
     public String getSummary(Long catId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         if (apiKey == null || apiKey.isBlank()) {
             return "🔑 AI 분석 키가 설정되지 않았어요.";
@@ -176,7 +178,6 @@ public class AiHealthSummaryService {
 
     private String callGemini(String prompt) {
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + apiKey;
-        RestTemplate restTemplate = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -250,16 +251,6 @@ public class AiHealthSummaryService {
             case "OVERWEIGHT" -> "과체중";
             default -> level;
         };
-    }
-
-    private void assertCatBelongsToUser(Long catId, Integer userId) {
-        Integer ownerUserId = jdbcTemplate.query(
-                "SELECT user_id FROM cat WHERE cat_id = ?",
-                new Object[]{catId},
-                rs -> rs.next() ? rs.getInt("user_id") : null
-        );
-        if (ownerUserId == null) throw new IllegalArgumentException("cat not found");
-        if (!ownerUserId.equals(userId)) throw new SecurityException("cat does not belong to user");
     }
 
     private static class HealthData {

@@ -26,6 +26,10 @@ import java.util.Map;
 public class VomitAnalysisService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final RestTemplate restTemplate;
+    private final CatOwnershipService catOwnershipService;
+
+    private static final int MAX_BASE64_LENGTH = 10_000_000; // ~7.5MB 이미지
 
     @Value("${GEMINI_API_KEY:}")
     private String geminiApiKey;
@@ -34,7 +38,7 @@ public class VomitAnalysisService {
                                                   VomitAnalysisRequest request,
                                                   Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         // 1) Gemini Vision으로 이미지 분석
         GeminiVisionResult vision = analyzeImageWithGemini(request.getImageBase64());
@@ -80,7 +84,7 @@ public class VomitAnalysisService {
 
     public void deleteVomitRecord(Long catId, Long vomitId, Authentication authentication) {
         Integer userId = (Integer) authentication.getPrincipal();
-        assertCatBelongsToUser(catId, userId);
+        catOwnershipService.assertOwner(catId, userId);
 
         Integer exists = jdbcTemplate.query(
                 "SELECT 1 FROM vomit_record WHERE vomit_record_id = ? AND cat_id = ? LIMIT 1",
@@ -94,16 +98,6 @@ public class VomitAnalysisService {
         jdbcTemplate.update("DELETE FROM vomit_record WHERE vomit_record_id = ? AND cat_id = ?", vomitId, catId);
     }
 
-    private void assertCatBelongsToUser(Long catId, Integer userId) {
-        Long ownerUserId = jdbcTemplate.query(
-                "SELECT user_id FROM cat WHERE cat_id = ?",
-                new Object[]{catId},
-                rs -> rs.next() ? rs.getLong("user_id") : null
-        );
-        if (ownerUserId == null) throw new IllegalArgumentException("cat not found");
-        if (ownerUserId.longValue() != userId.longValue()) throw new SecurityException("cat does not belong to user");
-    }
-
     private GeminiVisionResult analyzeImageWithGemini(String imageBase64) {
         GeminiVisionResult fallback = new GeminiVisionResult("UNKNOWN", false, false, false,
                 null, "사진 분석을 완료했어요. 수의사 상담이 필요하면 병원 탭을 이용해보세요.");
@@ -112,8 +106,12 @@ public class VomitAnalysisService {
             return fallback;
         }
 
+        if (imageBase64.length() > MAX_BASE64_LENGTH) {
+            log.warn("imageBase64 크기 초과: {} chars", imageBase64.length());
+            return fallback;
+        }
+
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey;
-        RestTemplate restTemplate = new RestTemplate();
 
         String prompt = "이 사진은 고양이가 구토한 것을 찍은 사진입니다. 아래 JSON 형식으로만 답하세요. 다른 설명 없이 JSON만 출력하세요.\n" +
                 "color 선택 기준:\n" +
@@ -172,7 +170,7 @@ public class VomitAnalysisService {
                 }
             }
             if (json == null) return fallback;
-            log.info("Gemini Vision raw text: {}", json);
+            log.debug("Gemini Vision raw text: {}", json);
             return parseVisionJson(json, fallback);
 
         } catch (Exception e) {
@@ -192,7 +190,7 @@ public class VomitAnalysisService {
                 return fallback;
             }
             json = json.substring(braceStart, braceEnd + 1);
-            log.info("Gemini Vision extracted JSON: {}", json);
+            log.debug("Gemini Vision extracted JSON: {}", json);
             ObjectMapper mapper = new ObjectMapper();
             JsonNode node = mapper.readTree(json);
 
