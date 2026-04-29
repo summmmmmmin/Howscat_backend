@@ -41,6 +41,8 @@ public class CareTableInitializer implements ApplicationRunner {
                             "  alarm_enabled TINYINT(1) DEFAULT 0," +
                             "  alarm_hour INT DEFAULT 9," +
                             "  alarm_minute INT DEFAULT 0," +
+                            "  alarm_hour2 INT DEFAULT NULL," +
+                            "  alarm_minute2 INT DEFAULT NULL," +
                             "  notes TEXT," +
                             "  created_at DATETIME DEFAULT CURRENT_TIMESTAMP," +
                             "  INDEX idx_medication_cat (cat_id)," +
@@ -49,6 +51,25 @@ public class CareTableInitializer implements ApplicationRunner {
             );
         } catch (Exception e) {
             log.warn("medication 테이블 초기화 실패 (이미 존재할 수 있음): {}", e.getMessage());
+        }
+
+        // 기존 테이블에 alarm_hour2 / alarm_minute2 컬럼이 없으면 추가
+        for (String[] col : new String[][]{
+                {"alarm_hour2",   "ALTER TABLE medication ADD COLUMN alarm_hour2 INT DEFAULT NULL"},
+                {"alarm_minute2", "ALTER TABLE medication ADD COLUMN alarm_minute2 INT DEFAULT NULL"}
+        }) {
+            try {
+                Integer cnt = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'medication' AND COLUMN_NAME = ?",
+                        Integer.class, col[0]);
+                if (cnt == null || cnt == 0) {
+                    jdbcTemplate.execute(col[1]);
+                    log.info("medication.{} 컬럼 추가 완료", col[0]);
+                }
+            } catch (Exception e) {
+                log.warn("medication.{} 컬럼 추가 실패: {}", col[0], e.getMessage());
+            }
         }
     }
 

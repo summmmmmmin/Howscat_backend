@@ -39,7 +39,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 reject(response);
                 return;
             }
-        } else if (path.contains("/vomit/analyze") || path.contains("/ai-summary")) {
+        } else if (path.contains("/vomit") || path.contains("/ai-summary")) {
             if (isLimited(ip, aiBucket, AI_MAX, AI_WINDOW_MS)) {
                 reject(response);
                 return;

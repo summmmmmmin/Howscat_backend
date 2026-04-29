@@ -10,7 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -126,10 +125,9 @@ public class ObesityCheckService {
             );
             return;
         }
-        Timestamp ts = Timestamp.valueOf(date.atStartOfDay());
         jdbcTemplate.update(
-                "INSERT INTO weight_record (cat_id, weight, recorded_at, recommended_water_ml, recommended_food_g) VALUES (?, ?, ?, ?, ?)",
-                catId, weightKg, ts, waterMl > 0 ? waterMl : null, foodG > 0 ? foodG : null
+                "INSERT INTO weight_record (cat_id, weight, recorded_at, recommended_water_ml, recommended_food_g) VALUES (?, ?, NOW(), ?, ?)",
+                catId, weightKg, waterMl > 0 ? waterMl : null, foodG > 0 ? foodG : null
         );
     }
 
