@@ -15,5 +15,7 @@ public class MedicationItem {
     private Boolean alarmEnabled;
     private Integer alarmHour;
     private Integer alarmMinute;
+    private Integer alarmHour2;
+    private Integer alarmMinute2;
     private String notes;
 }

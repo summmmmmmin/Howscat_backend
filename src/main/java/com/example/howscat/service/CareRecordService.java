@@ -33,7 +33,7 @@ public class CareRecordService {
 
         return jdbcTemplate.query(
                 "SELECT medication_id, name, dosage, frequency, start_date, end_date, " +
-                        "alarm_enabled, alarm_hour, alarm_minute, notes " +
+                        "alarm_enabled, alarm_hour, alarm_minute, alarm_hour2, alarm_minute2, notes " +
                         "FROM medication WHERE cat_id = ? ORDER BY start_date DESC",
                 new Object[]{catId},
                 (rs, i) -> new MedicationItem(
@@ -46,6 +46,8 @@ public class CareRecordService {
                         rs.getInt("alarm_enabled") == 1,
                         rs.getInt("alarm_hour"),
                         rs.getInt("alarm_minute"),
+                        (Integer) rs.getObject("alarm_hour2"),
+                        (Integer) rs.getObject("alarm_minute2"),
                         rs.getString("notes")
                 )
         );
@@ -63,8 +65,8 @@ public class CareRecordService {
         jdbcTemplate.update(con -> {
             PreparedStatement ps = con.prepareStatement(
                     "INSERT INTO medication (cat_id, user_id, name, dosage, frequency, start_date, end_date, " +
-                            "alarm_enabled, alarm_hour, alarm_minute, notes, created_at) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
+                            "alarm_enabled, alarm_hour, alarm_minute, alarm_hour2, alarm_minute2, notes, created_at) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())",
                     Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, catId);
             ps.setInt(2, userId);
@@ -76,7 +78,9 @@ public class CareRecordService {
             ps.setInt(8, Boolean.TRUE.equals(req.getAlarmEnabled()) ? 1 : 0);
             ps.setInt(9, req.getAlarmHour() != null ? req.getAlarmHour() : 9);
             ps.setInt(10, req.getAlarmMinute() != null ? req.getAlarmMinute() : 0);
-            ps.setString(11, req.getNotes());
+            ps.setObject(11, req.getAlarmHour2());
+            ps.setObject(12, req.getAlarmMinute2());
+            ps.setString(13, req.getNotes());
             return ps;
         }, keyHolder);
 
@@ -94,7 +98,7 @@ public class CareRecordService {
 
         jdbcTemplate.update(
                 "UPDATE medication SET name=?, dosage=?, frequency=?, start_date=?, end_date=?, " +
-                        "alarm_enabled=?, alarm_hour=?, alarm_minute=?, notes=? " +
+                        "alarm_enabled=?, alarm_hour=?, alarm_minute=?, alarm_hour2=?, alarm_minute2=?, notes=? " +
                         "WHERE medication_id=? AND cat_id=?",
                 req.getName(),
                 req.getDosage(),
@@ -104,6 +108,8 @@ public class CareRecordService {
                 Boolean.TRUE.equals(req.getAlarmEnabled()) ? 1 : 0,
                 req.getAlarmHour() != null ? req.getAlarmHour() : 9,
                 req.getAlarmMinute() != null ? req.getAlarmMinute() : 0,
+                req.getAlarmHour2(),
+                req.getAlarmMinute2(),
                 req.getNotes(),
                 medicationId, catId
         );
