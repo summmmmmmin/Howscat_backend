@@ -5,7 +5,7 @@
 **고양이 건강 관리 앱 Howscat의 Spring Boot 백엔드**
 
 [![Spring Boot](https://img.shields.io/badge/Spring_Boot_4.0.2-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io)
-[![Railway](https://img.shields.io/badge/Live_Deploy-Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white)](https://railway.app)
+[![AWS](https://img.shields.io/badge/Live_Deploy-AWS_EC2-FF9900?style=flat-square&logo=amazonaws&logoColor=white)](https://aws.amazon.com)
 [![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com)
 [![Gemini](https://img.shields.io/badge/Gemini_2.5_Flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
 [![JWT](https://img.shields.io/badge/JWT-Auth-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](#)
@@ -33,8 +33,8 @@ Howscat Android 앱의 전용 백엔드. JWT 인증, Gemini AI 연동, 고양이
 | 인증 | JWT — Access Token + Refresh Token |
 | Cache / 인증 저장 | Redis — Refresh Token 저장 / Blacklist / AI 요약 캐시 |
 | AI | Google Gemini 2.5 Flash (Vision · Text) |
-| 외부 API | Kakao Local (병원 검색 프록시) |
-| 배포 | Railway (MySQL + Redis + Spring Boot 컨테이너) |
+| 외부 API | Kakao Local (병원 검색 프록시) · AWS S3 (이미지 업로드) |
+| 배포 | AWS EC2 — Docker 컨테이너 · GitHub Actions CI/CD (master push → 자동 배포) |
 | 스키마 | ApplicationRunner — 배포 시 DDL 자동 실행 |
 
 ---
@@ -45,7 +45,7 @@ Howscat Android 앱의 전용 백엔드. JWT 인증, Gemini AI 연동, 고양이
 User·Cat 등 단순 CRUD는 `Spring Data JPA`로 처리하고, 8개 데이터 소스를 통합하는 캘린더 UNION ALL 쿼리나 `INFORMATION_SCHEMA` 조회처럼 ORM으로 표현하기 어려운 복잡한 쿼리는 `JdbcTemplate`으로 직접 작성한다. 기능 복잡도에 따라 두 방식을 선택적으로 혼용한다.
 
 ### Railway 자동 스키마
-Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTableInitializer`(`@Order(2)`)가 앱 시작 시 16개 테이블을 `CREATE TABLE IF NOT EXISTS`로 생성하고, 기존 테이블에 컬럼이 누락된 경우 `INFORMATION_SCHEMA`를 조회해 `ALTER TABLE`을 실행한다.
+별도 마이그레이션 툴 없이 `SchemaInitializer`(`@Order(1)`)와 `CareTableInitializer`(`@Order(2)`)가 앱 시작 시 16개 테이블을 `CREATE TABLE IF NOT EXISTS`로 생성하고, 기존 테이블에 컬럼이 누락된 경우 `INFORMATION_SCHEMA`를 조회해 `ALTER TABLE`을 실행한다.
 재배포 시 수동 마이그레이션 **0건**.
 
 ### Gemini 이중 활용
@@ -121,6 +121,11 @@ Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTabl
 | POST | `/hospitals/{id}/favorite` | 즐겨찾기 등록 |
 | DELETE | `/hospitals/{id}/favorite` | 즐겨찾기 해제 |
 
+### 이미지 업로드
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| POST | `/upload/image` | JPEG·PNG 이미지 → AWS S3 업로드 후 URL 반환 (10MB 제한, Magic Byte 검증) |
+
 ---
 
 ## 캘린더 이벤트 타입
@@ -183,6 +188,10 @@ Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTabl
 | `JWT_SECRET` | JWT 서명 키 (32바이트 이상) |
 | `KAKAO_REST_API_KEY` | Kakao Local REST API 키 |
 | `GEMINI_API_KEY` | Google Gemini API 키 (Vision·Text 분석) |
+| `cloud.aws.credentials.access-key` | AWS IAM Access Key (S3 업로드) |
+| `cloud.aws.credentials.secret-key` | AWS IAM Secret Key (S3 업로드) |
+| `cloud.aws.region` | AWS 리전 (기본값: ap-northeast-2) |
+| `cloud.aws.s3.bucket` | S3 버킷 이름 |
 
 ### 실행
 
@@ -218,6 +227,6 @@ src/main/java/com/example/howscat/
 
 <div align="center">
 
-**Spring Boot 4.0.2 · Railway · Gemini 2.5 Flash · JWT · Spring Data JPA + JdbcTemplate**
+**Spring Boot 4.0.2 · AWS EC2 · Gemini 2.5 Flash · JWT · Spring Data JPA + JdbcTemplate**
 
 </div>
