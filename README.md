@@ -12,7 +12,7 @@
 
 <br>
 
-> Railway에 실배포 중인 REST API 서버
+> AWS EC2에 실배포 중인 REST API 서버
 </div>
 
 ---
