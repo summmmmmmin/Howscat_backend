@@ -13,8 +13,6 @@
 <br>
 
 > Railway에 실배포 중인 REST API 서버
-> Android 클라이언트 → [Howscat App](../README.md)
-
 </div>
 
 ---
