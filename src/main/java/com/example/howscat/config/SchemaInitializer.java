@@ -22,6 +22,7 @@ public class SchemaInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
+        addWeightGoalColumnToCat();
         createHealthTypeTable();
         createHealthScheduleTable();
         createWeightRecordTable();
@@ -36,6 +37,21 @@ public class SchemaInitializer implements ApplicationRunner {
 
         seedHealthType();
         seedVomitStatus();
+    }
+
+    private void addWeightGoalColumnToCat() {
+        try {
+            Integer cnt = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                    "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cat' AND COLUMN_NAME = 'weight_goal'",
+                    Integer.class);
+            if (cnt == null || cnt == 0) {
+                jdbcTemplate.execute("ALTER TABLE cat ADD COLUMN weight_goal FLOAT DEFAULT NULL");
+                log.info("cat.weight_goal 컬럼 추가 완료");
+            }
+        } catch (Exception e) {
+            log.warn("cat.weight_goal 컬럼 추가 실패: {}", e.getMessage());
+        }
     }
 
     private void createHealthTypeTable() {

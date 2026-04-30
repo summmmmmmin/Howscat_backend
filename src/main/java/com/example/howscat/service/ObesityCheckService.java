@@ -120,7 +120,7 @@ public class ObesityCheckService {
         );
         if (existingId != null) {
             jdbcTemplate.update(
-                    "UPDATE weight_record SET weight = ?, recommended_water_ml = ?, recommended_food_g = ? WHERE weight_record_id = ?",
+                    "UPDATE weight_record SET weight = ?, recommended_water_ml = ?, recommended_food_g = ?, recorded_at = NOW() WHERE weight_record_id = ?",
                     weightKg, waterMl > 0 ? waterMl : null, foodG > 0 ? foodG : null, existingId
             );
             return;

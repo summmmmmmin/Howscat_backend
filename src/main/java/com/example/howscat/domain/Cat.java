@@ -29,5 +29,7 @@ public class Cat {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "weight_goal")
+    private Float weightGoal;
 
 }

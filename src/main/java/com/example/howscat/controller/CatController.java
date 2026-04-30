@@ -4,8 +4,10 @@ import com.example.howscat.domain.Cat;
 import com.example.howscat.domain.User;
 import com.example.howscat.dto.CatRequest;
 import com.example.howscat.dto.CatResponse;
+import com.example.howscat.dto.WeightGoalRequest;
 import com.example.howscat.repository.CatRepository;
 import com.example.howscat.repository.UserRepository;
+import com.example.howscat.service.CatOwnershipService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +27,7 @@ public class CatController {
 
     private final CatRepository catRepository;
     private final UserRepository userRepository;
+    private final CatOwnershipService catOwnershipService;
 
     private Integer extractUserId(Authentication authentication) {
         return (Integer) authentication.getPrincipal();
@@ -74,13 +77,6 @@ public class CatController {
             throw new SecurityException("해당 고양이에 대한 권한이 없습니다.");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 🔥 여기서 마지막 조회 고양이 업데이트
-        user.updateLastViewedCatId(cat.getId());
-        userRepository.save(user);
-
         CatResponse response = new CatResponse(cat);
         return ResponseEntity.ok(response);
     }
@@ -98,10 +94,28 @@ public class CatController {
         return ResponseEntity.ok(response);
     }
 
+    @PutMapping("/{catId}/weight-goal")
+    public ResponseEntity<?> updateWeightGoal(
+            @PathVariable Long catId,
+            @RequestBody WeightGoalRequest request,
+            Authentication authentication) {
+
+        Integer userId = extractUserId(authentication);
+        catOwnershipService.assertOwner(catId, userId);
+
+        Cat cat = catRepository.findById(catId)
+                .orElseThrow(() -> new IllegalArgumentException("고양이를 찾을 수 없습니다."));
+        cat.setWeightGoal(request.getWeightGoal());
+        catRepository.save(cat);
+
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/select/{catId}")
     public ResponseEntity<?> selectCat(@PathVariable Long catId,
                                        Authentication authentication) {
         Integer userId = extractUserId(authentication);
+        catOwnershipService.assertOwner(catId, userId);   // 소유권 검증
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         user.setLastViewedCatId(catId);

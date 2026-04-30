@@ -14,6 +14,7 @@ public class CatResponse {
     private String gender;
     private String birthdate;
     private Integer age;
+    private Float weightGoal;
 
     public CatResponse(Cat cat) {
         this.id = cat.getId();
@@ -23,5 +24,6 @@ public class CatResponse {
         if (cat.getBirthDate() != null) {
             this.age = Period.between(cat.getBirthDate(), LocalDate.now()).getYears();
         }
+        this.weightGoal = cat.getWeightGoal();
     }
 }

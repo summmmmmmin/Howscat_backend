@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -20,16 +21,16 @@ public class JwtProvider {
 
     @PostConstruct
     public void validateSecret() {
-        if (secret == null || secret.getBytes().length < 32) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalStateException(
                 "JWT_SECRET은 32바이트(256비트) 이상이어야 합니다. 현재 길이: "
-                + (secret == null ? 0 : secret.getBytes().length) + "바이트"
+                + (secret == null ? 0 : secret.getBytes(StandardCharsets.UTF_8).length) + "바이트"
             );
         }
     }
 
     private Key getKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     // Access Token

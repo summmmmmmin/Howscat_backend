@@ -76,6 +76,7 @@ Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTabl
 | GET | `/cats/{id}` | 정보 조회 |
 | GET | `/cats/user` | 내 고양이 목록 |
 | POST | `/cats/select/{catId}` | 활성 고양이 전환 |
+| PUT | `/cats/{catId}/weight-goal` | 목표 체중 설정 |
 
 ### AI 분석
 | 메서드 | 경로 | 설명 |
@@ -136,7 +137,7 @@ Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTabl
 | `WEIGHT` | weight_record | 체중 기록 |
 | `VOMIT` | vomit_record | 구토 분석 기록 |
 | `MEDICATION` | medication | 투약 기록 |
-| `LITTER_BOX` | litter_box_record | 화장실 기록 |
+| `LITTER` | litter_box_record | 화장실 기록 |
 | `VET_VISIT` | vet_visit | 진료 기록 |
 
 ---
@@ -146,7 +147,7 @@ Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTabl
 | 테이블 | 설명 |
 |--------|------|
 | `users` | 사용자 계정 |
-| `cat` | 고양이 정보 |
+| `cat` | 고양이 정보 (목표 체중 weight_goal 포함) |
 | `health_type` | 건강 검진 유형 시드 |
 | `health_schedule` | 건강검진·예방접종 일정 |
 | `weight_record` | 체중 + 추천 물·사료량 |
@@ -183,6 +184,7 @@ Railway는 빈 DB만 제공한다. `SchemaInitializer`(`@Order(1)`)와 `CareTabl
 | `REDIS_USERNAME` | Redis 사용자명 (기본값: default) |
 | `JWT_SECRET` | JWT 서명 키 (32바이트 이상) |
 | `KAKAO_REST_API_KEY` | Kakao Local REST API 키 |
+| `GEMINI_API_KEY` | Google Gemini API 키 (Vision·Text 분석) |
 
 ### 실행
 
